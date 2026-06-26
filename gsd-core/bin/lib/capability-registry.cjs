@@ -1654,7 +1654,7 @@ const capabilities = {
     "role": "runtime",
     "version": "1.6.0",
     "title": "Pi Coding Agent",
-    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent. Skills converted pi-native (allowed-tools lowercased + space-delimited); agents copied verbatim. No native hook bus — bridged via a pi extension. No shared settings. Tier-2 support.",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills converted pi-native (name hyphenated; allowed-tools space-delimited lowercase); agents path-rewritten to the install root. No native hook bus — guards run as a native TS guard extension. No shared settings. Tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -4078,7 +4078,7 @@ const runtimes = {
     "role": "runtime",
     "version": "1.6.0",
     "title": "Pi Coding Agent",
-    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent. Skills converted pi-native (allowed-tools lowercased + space-delimited); agents copied verbatim. No native hook bus — bridged via a pi extension. No shared settings. Tier-2 support.",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills converted pi-native (name hyphenated; allowed-tools space-delimited lowercase); agents path-rewritten to the install root. No native hook bus — guards run as a native TS guard extension. No shared settings. Tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
