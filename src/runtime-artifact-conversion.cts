@@ -1512,7 +1512,11 @@ function convertClaudeCommandToPiSkill(content, _skillName, _runtime = null, _cm
     const listMatch = inAllowedTools ? line.match(/^\s*-\s+(.+)$/) : null;
     if (listMatch) { collected.push(listMatch[1].trim()); continue; }
     if (inAllowedTools) { flushAllowedTools(); inAllowedTools = false; }
-    out.push(line);
+    // pi's skill loader requires `name:` to match [a-z0-9-]+ (dist/core/skills.js
+    // validateName); Claude's colon namespace (gsd:add-tests) fails validation and
+    // the skill ends up invocable as the broken /skill:gsd:add-tests. Hyphenate
+    // the name value so it loads cleanly as /skill:gsd-add-tests.
+    out.push(line.replace(/^(name:\s*)(\S.*)$/, (_m, k, v) => k + v.replace(/:/g, '-')));
   }
   if (inAllowedTools) flushAllowedTools();
 

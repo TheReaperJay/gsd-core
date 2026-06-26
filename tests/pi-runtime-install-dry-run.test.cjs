@@ -57,6 +57,10 @@ describe('pi runtime install dry-run — on-disk layout', () => {
       const sampleSkill = path.join(skillsDir, skillDirs[0].name, 'SKILL.md');
       assert.ok(fs.existsSync(sampleSkill), 'each skill dir has a SKILL.md');
       const skillText = fs.readFileSync(sampleSkill, 'utf8');
+      // pi's skill loader requires name to match [a-z0-9-]+; the colon namespace
+      // form (gsd:add-tests) must be hyphenated to load cleanly as /skill:gsd-*.
+      assert.match(skillText, /^name: gsd-[a-z0-9-]+$/m, 'skill name is hyphen-form, not colon-form');
+      assert.doesNotMatch(skillText, /^name: gsd:/m, 'no colon-form skill name remains');
       const atLine = skillText.split('\n').find((l) => /^allowed-tools:/.test(l));
       assert.ok(atLine, 'an allowed-tools line is present');
       assert.ok(!/^allowed-tools:\s*\n\s*-/.test(skillText) && !/^- (Read|Write|Edit|Bash|Glob|Grep)$/m.test(skillText),

@@ -1665,8 +1665,7 @@ const capabilities = {
         "kind": "dot-home",
         "name": ".pi/agent",
         "env": [
-          "PI_CONFIG_DIR",
-          "PI_AGENT_DIR"
+          "PI_CODING_AGENT_DIR"
         ]
       },
       "configFormat": "none",
@@ -4090,8 +4089,7 @@ const runtimes = {
         "kind": "dot-home",
         "name": ".pi/agent",
         "env": [
-          "PI_CONFIG_DIR",
-          "PI_AGENT_DIR"
+          "PI_CODING_AGENT_DIR"
         ]
       },
       "configFormat": "none",

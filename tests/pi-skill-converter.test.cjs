@@ -125,9 +125,20 @@ describe('convertClaudeCommandToPiSkill — body & frontmatter preservation', ()
     );
   });
 
-  test('preserves non-allowed-tools frontmatter fields untouched', () => {
+  test('hyphenates the name field (pi skills require [a-z0-9-]+, not colon)', () => {
     const result = convertClaudeCommandToPiSkill(sampleCommand(), 'gsd-ai-integration-phase');
-    assert.ok(result.includes('name: gsd:ai-integration-phase'), 'name preserved');
+    // Claude's colon namespace (gsd:ai-integration-phase) fails pi's skill-name
+    // validation and produces a broken /skill:gsd:ai-integration-phase invocation;
+    // the converter rewrites the name value to hyphen form.
+    assert.ok(result.includes('name: gsd-ai-integration-phase'), 'name is hyphenated');
+    assert.ok(!result.includes('name: gsd:ai-integration-phase'), 'colon name form is gone');
+    // Body references to the colon form are intentionally preserved verbatim —
+    // they are instructional text for the model, not a parsed invocation; the
+    // converter only rewrites the `name:` frontmatter value.
+  });
+
+  test('preserves non-name frontmatter fields untouched', () => {
+    const result = convertClaudeCommandToPiSkill(sampleCommand(), 'gsd-ai-integration-phase');
     assert.ok(
       result.includes('description: Generate an AI-SPEC.md design contract for phases that involve building AI systems.'),
       'description preserved',

@@ -40,14 +40,14 @@ describe('pi runtime — identity resolution', () => {
     );
   });
 
-  test('configHome honors PI_CONFIG_DIR override', () => {
-    const prev = process.env.PI_CONFIG_DIR;
-    process.env.PI_CONFIG_DIR = '/tmp/pi-override';
+  test('configHome honors PI_CODING_AGENT_DIR override', () => {
+    const prev = process.env.PI_CODING_AGENT_DIR;
+    process.env.PI_CODING_AGENT_DIR = '/tmp/pi-override';
     try {
       assert.equal(getGlobalConfigDir('pi', null), '/tmp/pi-override');
     } finally {
-      if (prev === undefined) delete process.env.PI_CONFIG_DIR;
-      else process.env.PI_CONFIG_DIR = prev;
+      if (prev === undefined) delete process.env.PI_CODING_AGENT_DIR;
+      else process.env.PI_CODING_AGENT_DIR = prev;
     }
   });
 
