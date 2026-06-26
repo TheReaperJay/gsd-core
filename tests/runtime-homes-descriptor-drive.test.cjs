@@ -102,6 +102,7 @@ const GOLDEN_DEFAULTS = {
   cline:       path.join(HOME, '.cline'),
   opencode:    path.join(HOME, '.config', 'opencode'),
   kilo:        path.join(HOME, '.config', 'kilo'),
+  pi:          path.join(HOME, '.pi', 'agent'),
 };
 
 // ── GOLDEN DEFAULTS ────────────────────────────────────────────────────────────
@@ -841,7 +842,7 @@ describe('descriptor-driven global skills base', () => {
   });
 });
 
-// ── GOLDEN PARITY: getGlobalConfigDir via process.env for all 16 registry runtimes ──
+// ── GOLDEN PARITY: getGlobalConfigDir via process.env for all 17 registry runtimes ──
 
 describe('descriptor-driven parity: 14 non-probe registry runtimes × no-env-vars = golden defaults', () => {
   // This is the hardest assertion: it drives getGlobalConfigDir() (which calls

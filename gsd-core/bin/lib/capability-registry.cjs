@@ -1649,6 +1649,83 @@ const capabilities = {
     "contributions": [],
     "gates": []
   },
+  "pi": {
+    "id": "pi",
+    "role": "runtime",
+    "version": "1.6.0",
+    "title": "Pi Coding Agent",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent. Skills converted pi-native (allowed-tools lowercased + space-delimited); agents copied verbatim. No native hook bus — bridged via a pi extension. No shared settings. Tier-2 support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.6.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home",
+        "name": ".pi/agent",
+        "env": [
+          "PI_CONFIG_DIR",
+          "PI_AGENT_DIR"
+        ]
+      },
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": true,
+            "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          }
+        ],
+        "local": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": true,
+            "converter": "convertClaudeCommandToPiSkill"
+          }
+        ]
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 2,
+          "background": true,
+          "subagentToolkit": "full"
+        },
+        "modelMode": "active",
+        "hookBus": "engine",
+        "stateIO": "filesystem",
+        "transport": "native-extension",
+        "runtime": "node"
+      }
+    }
+  },
   "profile-pipeline": {
     "id": "profile-pipeline",
     "role": "feature",
@@ -3997,6 +4074,83 @@ const runtimes = {
       }
     }
   },
+  "pi": {
+    "id": "pi",
+    "role": "runtime",
+    "version": "1.6.0",
+    "title": "Pi Coding Agent",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent. Skills converted pi-native (allowed-tools lowercased + space-delimited); agents copied verbatim. No native hook bus — bridged via a pi extension. No shared settings. Tier-2 support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.6.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home",
+        "name": ".pi/agent",
+        "env": [
+          "PI_CONFIG_DIR",
+          "PI_AGENT_DIR"
+        ]
+      },
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": true,
+            "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          }
+        ],
+        "local": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": true,
+            "converter": "convertClaudeCommandToPiSkill"
+          }
+        ]
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 2,
+          "background": true,
+          "subagentToolkit": "full"
+        },
+        "modelMode": "active",
+        "hookBus": "engine",
+        "stateIO": "filesystem",
+        "transport": "native-extension",
+        "runtime": "node"
+      }
+    }
+  },
   "qwen": {
     "id": "qwen",
     "role": "runtime",
@@ -4369,6 +4523,7 @@ const _requiresGraph = {
   "pattern-mapper": [
     "research"
   ],
+  "pi": [],
   "profile-pipeline": [],
   "qwen": [],
   "research": [],

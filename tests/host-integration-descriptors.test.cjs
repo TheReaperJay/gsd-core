@@ -34,7 +34,7 @@ const DISPATCH_KEYS = ['namedDispatch', 'nested', 'maxDepth', 'background', 'sub
 const RUNTIME_IDS = [
   'antigravity', 'augment', 'claude', 'cline', 'codebuddy',
   'codex', 'copilot', 'cursor', 'gemini', 'hermes',
-  'kilo', 'kimi', 'opencode', 'qwen', 'trae', 'windsurf',
+  'kilo', 'kimi', 'opencode', 'pi', 'qwen', 'trae', 'windsurf',
 ];
 
 // Contract-pinned profile split (derived from .host-cli-final.json):
@@ -51,6 +51,7 @@ const EXPECTED_PROFILES = {
   opencode:    'programmatic-cli',
   qwen:        'programmatic-cli',
   trae:        'programmatic-cli',
+  pi:          'programmatic-cli',
   antigravity: 'declarative-cli',
   augment:     'declarative-cli',
   codebuddy:   'declarative-cli',
@@ -63,7 +64,7 @@ const EXPECTED_PROFILES = {
 describe('ADR-1239 Phase A: hostIntegration descriptors', () => {
   // ─── Registry shape ──────────────────────────────────────────────────────────
 
-  test('registry.runtimes contains all 16 expected runtime ids', () => {
+  test('registry.runtimes contains all 17 expected runtime ids', () => {
     for (const id of RUNTIME_IDS) {
       assert.ok(
         Object.prototype.hasOwnProperty.call(registry.runtimes, id),
@@ -72,8 +73,8 @@ describe('ADR-1239 Phase A: hostIntegration descriptors', () => {
     }
     assert.strictEqual(
       Object.keys(registry.runtimes).length,
-      16,
-      'registry.runtimes must have exactly 16 entries',
+      17,
+      'registry.runtimes must have exactly 17 entries',
     );
   });
 
@@ -208,7 +209,7 @@ describe('ADR-1239 Phase A: hostIntegration descriptors', () => {
 
   // ─── Contract-pin profile split ───────────────────────────────────────────────
 
-  test('contract-pin: exactly 9 programmatic-cli, 7 declarative-cli, 0 ide', () => {
+  test('contract-pin: exactly 10 programmatic-cli, 7 declarative-cli, 0 ide', () => {
     const counts = { 'programmatic-cli': 0, 'declarative-cli': 0, 'ide': 0 };
     for (const id of RUNTIME_IDS) {
       const cap = registry.runtimes[id];
@@ -220,7 +221,7 @@ describe('ADR-1239 Phase A: hostIntegration descriptors', () => {
         counts[profile]++;
       }
     }
-    assert.strictEqual(counts['programmatic-cli'], 9, 'Must have exactly 9 programmatic-cli runtimes');
+    assert.strictEqual(counts['programmatic-cli'], 10, 'Must have exactly 10 programmatic-cli runtimes');
     assert.strictEqual(counts['declarative-cli'], 7, 'Must have exactly 7 declarative-cli runtimes');
     assert.strictEqual(counts['ide'], 0, 'Must have exactly 0 ide runtimes');
   });

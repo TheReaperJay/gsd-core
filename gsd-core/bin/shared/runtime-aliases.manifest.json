@@ -75,5 +75,10 @@
   "cline": [
     "cline",
     "cline-cli"
+  ],
+  "pi": [
+    "pi",
+    "pi-coding-agent",
+    "pi-cli"
   ]
 }

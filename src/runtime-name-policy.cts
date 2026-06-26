@@ -31,6 +31,7 @@ const FALLBACK_ALIASES: Readonly<Record<string, string[]>> = {
   kimi: ['kimi'],
   codebuddy: ['codebuddy', 'codebuddy-cli'],
   cline: ['cline', 'cline-cli'],
+  pi: ['pi', 'pi-coding-agent', 'pi-cli'],
 };
 
 function normalizeRuntimeToken(value: string): string {
@@ -157,5 +158,6 @@ export function getDirName(runtime: string): string {
   if (runtime === 'kimi') return '.kimi-code';
   if (runtime === 'codebuddy') return '.codebuddy';
   if (runtime === 'cline') return '.cline';
+  if (runtime === 'pi') return '.pi';
   return '.claude';
 }

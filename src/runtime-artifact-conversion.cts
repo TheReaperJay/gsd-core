@@ -1481,6 +1481,53 @@ function convertClaudeCommandToCodexSkill(content, skillName) {
   return `---\nname: ${yamlQuote(skillName)}\ndescription: ${yamlQuote(description)}\nmetadata:\n  short-description: ${yamlQuote(shortDescription)}\n---\n\n${adapter}\n\n${body.trimStart()}`;
 }
 
+/**
+ * Convert a GSD Claude-source skill to pi-native form.
+ *
+ * pi (@earendil-works/pi-coding-agent) loads Claude skill files natively, but
+ * its `allowed-tools` is a space-delimited lowercase allowlist. This converter:
+ *   - rewrites `allowed-tools` from a YAML array of Capitalized Claude tool
+ *     names to a space-delimited lowercase string (Read→read, Glob→find, …);
+ *   - preserves `mcp__context7__*` and any unmapped tool verbatim — `allowed-tools`
+ *     is a PERMISSIVE allowlist, so non-installed tools are inert (no error);
+ *   - leaves the body byte-identical (pi consumes Claude skill bodies).
+ *
+ * Signature matches the `skillsKind` call site
+ * `(content, skillName, runtime, cmdNames, isGlobal) => string`.
+ */
+function convertClaudeCommandToPiSkill(content, _skillName, _runtime = null, _cmdNames = null, _isGlobal = false) {
+  const { frontmatter, body } = extractFrontmatterAndBody(content);
+  if (!frontmatter) return content; // no frontmatter → copy verbatim
+
+  const lines = frontmatter.split('\n');
+  const out: string[] = [];
+  let inAllowedTools = false;
+  const collected: string[] = [];
+  const flushAllowedTools = () => {
+    if (collected.length) out.push(`allowed-tools: ${collected.map(convertPiToolName).join(' ')}`);
+    collected.length = 0;
+  };
+  for (const line of lines) {
+    if (/^allowed-tools:\s*$/.test(line)) { inAllowedTools = true; continue; }
+    const listMatch = inAllowedTools ? line.match(/^\s*-\s+(.+)$/) : null;
+    if (listMatch) { collected.push(listMatch[1].trim()); continue; }
+    if (inAllowedTools) { flushAllowedTools(); inAllowedTools = false; }
+    out.push(line);
+  }
+  if (inAllowedTools) flushAllowedTools();
+
+  return `---\n${out.join('\n')}\n---\n${body}`;
+}
+
+// Verified pi tool-name map. allowed-tools is permissive, so unmapped names are
+// preserved verbatim (inert if the tool is absent), never dropped.
+function convertPiToolName(claudeTool: string): string {
+  const map: Record<string, string> = {
+    Read: 'read', Write: 'write', Edit: 'edit', Bash: 'bash', Grep: 'grep', Glob: 'find',
+  };
+  return map[claudeTool] ?? claudeTool;
+}
+
 function neutralizeAgentReferences(content, instructionFile) {
   let c = content;
   // Replace standalone "Claude" (the agent) but preserve product/model names.
@@ -2617,6 +2664,7 @@ export = {
   convertClaudeCommandToCodexSkill,
   neutralizeAgentReferences,
   convertClaudeCommandToOpencodeSkill,
+  convertClaudeCommandToPiSkill,
   convertClaudeCommandToKiloSkill,
   readGsdCommandNames,
   transformContentToHyphen,
