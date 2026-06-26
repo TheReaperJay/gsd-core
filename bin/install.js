@@ -9340,6 +9340,7 @@ function install(isGlobal, runtime = 'claude', options = {}) {
   if (isKimi) runtimeLabel = 'Kimi';
   if (isCodebuddy) runtimeLabel = 'CodeBuddy';
   if (isCline) runtimeLabel = 'Cline';
+  if (isPi) runtimeLabel = 'Pi';
 
   console.log(`  Installing for ${cyan}${runtimeLabel}${reset} to ${cyan}${locationLabel}${reset}\n`);
 
@@ -9627,7 +9628,7 @@ function install(isGlobal, runtime = 'claude', options = {}) {
   // Cline global: emit skills to ~/.cline/skills/ (Cline >= v3.48.0 — #782).
   const _isSkillsRuntime = isCodex || isCopilot || isAntigravity || isCursor || isWindsurf ||
     isAugment || isTrae || isCodebuddy || isQwen || isHermes ||
-    isKimi ||
+    isKimi || isPi ||
     (runtime === 'claude' && isGlobal) ||
     (isCline && isGlobal);
 

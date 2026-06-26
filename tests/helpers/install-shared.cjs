@@ -116,7 +116,7 @@ function runMinimalInstall({ runtime, scope, extraArgs = [] }) {
       claude: '.claude', opencode: '.opencode', gemini: '.gemini', kilo: '.kilo',
       codex: '.codex', copilot: '.github', antigravity: '.agents', cursor: '.cursor',
       windsurf: '.windsurf', augment: '.augment', trae: '.trae', qwen: '.qwen',
-      codebuddy: '.codebuddy', cline: '.',
+      codebuddy: '.codebuddy', cline: '.', pi: '.pi',
     };
     let configDir;
     let cwd = process.cwd();

@@ -1516,7 +1516,7 @@ function convertClaudeCommandToPiSkill(content, _skillName, _runtime = null, _cm
   }
   if (inAllowedTools) flushAllowedTools();
 
-  return `---\n${out.join('\n')}\n---\n${body}`;
+  return `---\n${out.join('\n')}\n---${body}`;
 }
 
 // Verified pi tool-name map. allowed-tools is permissive, so unmapped names are
