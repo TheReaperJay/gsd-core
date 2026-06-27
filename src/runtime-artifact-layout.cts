@@ -44,7 +44,7 @@ const _require: NodeRequire = require;
 // ---------------------------------------------------------------------------
 
 type ArtifactKindName = 'commands' | 'agents' | 'skills';
-type KimiArtifactKindName = ArtifactKindName | 'kimi-agents';
+type KimiArtifactKindName = ArtifactKindName | 'kimi-agents' | 'pi-extension';
 
 // Mirrors the (unexported) ResolvedProfile in install-profiles.cts.
 // Must stay in sync if that shape changes.
@@ -267,6 +267,52 @@ function kimiAgentsKind(destSubpath: string, prefix: string, configDir: string):
 }
 
 /**
+ * Build a pi-extension kind descriptor.
+ *
+ * Stages the native TS guard extension source (extensions/pi/gsd-pi-bridge.ts
+ * plus any future sibling files) from the published package into a temp dir
+ * for copy-into-place by installRuntimeArtifacts. The source ships as a
+ * static file under <pkgRoot>/extensions/pi/; pi's runtime loads it via jiti
+ * at startup (see @earendil-works/pi-coding-agent docs/extensions.md).
+ *
+ * @param destSubpath  'extensions' — pi's discovery dir under the config home
+ * @param prefix       'gsd-' — namespaced so _removeGsdEntries prunes only
+ *                     gsd-owned extension files on uninstall, leaving
+ *                     user-authored extensions untouched
+ * @param configDir    resolved runtime config dir (used only for error msgs)
+ * @param scope        'global' | 'local' — controls tmpdir suffix for
+ *                     concurrent installs
+ */
+function piExtensionKind(
+  destSubpath: string,
+  prefix: string,
+  configDir: string,
+  scope: 'local' | 'global',
+): ArtifactKind {
+  return {
+    kind: 'pi-extension',
+    destSubpath,
+    prefix,
+    stage: (_resolved) => {
+      // Source lives at <pkgRoot>/extensions/pi/. At runtime __dirname is
+      // <pkgRoot>/gsd-core/bin/lib/ (this file is compiled from src/runtime-artifact-layout.cts),
+      // so the relative path is ../../../extensions/pi/.
+      const src = path.resolve(__dirname, '..', '..', '..', 'extensions', 'pi');
+      if (!fs.existsSync(src)) {
+        throw new Error(
+          `pi-extension stage: source dir ${src} does not exist ` +
+          `(extensions/pi/ not shipped in package — check package.json#files)`,
+        );
+      }
+      const staged = fs.mkdtempSync(path.join(os.tmpdir(), `gsd-pi-extension-${scope}-`));
+      installProfiles.STAGED_DIRS.add(staged);
+      fs.cpSync(src, staged, { recursive: true });
+      return staged;
+    },
+  };
+}
+
+/**
  * Build a skills kind descriptor.
  *
  * @param destSubpath
@@ -450,6 +496,9 @@ function dispatchKindEntry(entry: ArtifactKindDescriptor, runtime: string, confi
 
     case 'kimi-agents':
       return kimiAgentsKind(destSubpath, prefix, configDir);
+
+    case 'pi-extension':
+      return piExtensionKind(destSubpath, prefix, configDir, scope);
 
     default:
       throw new TypeError(

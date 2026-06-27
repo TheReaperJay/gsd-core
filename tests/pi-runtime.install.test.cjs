@@ -112,15 +112,16 @@ describe('pi runtime — installer flag wiring', () => {
 });
 
 describe('pi runtime — artifact layout resolution', () => {
-  test('resolveRuntimeArtifactLayout(pi, global) yields skills only (no agents)', () => {
+  test('resolveRuntimeArtifactLayout(pi, global) yields skills + pi-extension (no agents)', () => {
     const l = resolveRuntimeArtifactLayout('pi', '/tmp/pi-stage', 'global');
     const kinds = l.kinds.map((k) => k.kind).sort();
-    assert.deepEqual(kinds, ['skills'], 'global layout is skills-only');
+    assert.deepEqual(kinds, ['pi-extension', 'skills'], 'global layout is skills + pi-extension, no agents');
   });
 
-  test('resolveRuntimeArtifactLayout(pi, local) yields skills', () => {
+  test('resolveRuntimeArtifactLayout(pi, local) yields skills + pi-extension', () => {
     const l = resolveRuntimeArtifactLayout('pi', '/tmp/pi-stage', 'local');
-    assert.ok(l.kinds.some((k) => k.kind === 'skills'));
+    const kinds = l.kinds.map((k) => k.kind).sort();
+    assert.deepEqual(kinds, ['pi-extension', 'skills'], 'local layout is skills + pi-extension');
   });
 });
 

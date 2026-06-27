@@ -12,7 +12,7 @@
 const _require: NodeRequire = require;
 const path = _require('node:path') as typeof import('node:path');
 
-type ArtifactKindName = 'commands' | 'agents' | 'skills' | 'kimi-agents';
+type ArtifactKindName = 'commands' | 'agents' | 'skills' | 'kimi-agents' | 'pi-extension';
 type InstallScope = 'local' | 'global';
 
 interface ResolvedProfile {

@@ -1678,6 +1678,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": true,
             "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "pi-extension",
+            "destSubpath": "extensions",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ],
         "local": [
@@ -1688,6 +1696,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": true,
             "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "pi-extension",
+            "destSubpath": "extensions",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ]
       },
@@ -4094,6 +4110,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": true,
             "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "pi-extension",
+            "destSubpath": "extensions",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ],
         "local": [
@@ -4104,6 +4128,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": true,
             "converter": "convertClaudeCommandToPiSkill"
+          },
+          {
+            "kind": "pi-extension",
+            "destSubpath": "extensions",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ]
       },
