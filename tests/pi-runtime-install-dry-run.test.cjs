@@ -129,4 +129,71 @@ describe('pi runtime install dry-run — on-disk layout', () => {
       cleanup(root);
     }
   });
+
+  test('lands bridge file at ~/.pi/agent/extensions/ (global) and <cwd>/.pi/extensions/ (local), recorded in manifest, removed on uninstall', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-pi-bridge-'));
+    const localRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-pi-bridge-local-'));
+    try {
+      // ----- global install: bridge lands at <root>/.pi/agent/extensions/ -----
+      installPiGlobal(root);
+      const configDir = path.join(root, '.pi', 'agent');
+      const bridgeDest = path.join(configDir, 'extensions', 'gsd-pi-bridge.ts');
+      assert.ok(fs.existsSync(bridgeDest),
+        'bridge file installed at <globalConfigDir>/extensions/gsd-pi-bridge.ts');
+
+      // File byte-identity: shipped source === installed copy. Catches any
+      // future bug where the layout staging copies the wrong dir or transforms
+      // content during transit.
+      const sourcePath = path.join(__dirname, '..', 'extensions', 'pi', 'gsd-pi-bridge.ts');
+      const sourceBytes = fs.readFileSync(sourcePath);
+      const destBytes = fs.readFileSync(bridgeDest);
+      assert.ok(sourceBytes.equals(destBytes),
+        'installed bridge is byte-identical to the shipped source');
+
+      // Manifest recorded the bridge file with a hash entry.
+      const manifestPath = path.join(configDir, MANIFEST_NAME);
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(manifest.files, 'extensions/gsd-pi-bridge.ts'),
+        `manifest must record extensions/gsd-pi-bridge.ts; got keys: ${Object.keys(manifest.files).filter(k => k.includes('extension')).join(', ') || '(none)'}`,
+      );
+      const manifestHash = manifest.files['extensions/gsd-pi-bridge.ts'];
+      assert.ok(typeof manifestHash === 'string' && manifestHash.length > 0,
+        'manifest hash is a non-empty string');
+
+      // ----- local install: bridge lands at <localRoot>/.pi/extensions/ -----
+      // The installer uses process.cwd() for the local target base; the test
+      // spawns the installer with cwd=localRoot so install writes
+      // <localRoot>/.pi/extensions/gsd-pi-bridge.ts.
+      const localRes = spawnSync(process.execPath, [INSTALL_SCRIPT, '--pi', '--local'], {
+        cwd: localRoot,
+        encoding: 'utf8',
+        env: installerEnv({ HOME: root, USERPROFILE: root }),
+      });
+      assert.strictEqual(localRes.status, 0,
+        `local installer exited ${localRes.status}\nstdout: ${localRes.stdout}\nstderr: ${localRes.stderr}`);
+      const localBridge = path.join(localRoot, '.pi', 'extensions', 'gsd-pi-bridge.ts');
+      assert.ok(fs.existsSync(localBridge),
+        'bridge file installed at <localCwd>/.pi/extensions/gsd-pi-bridge.ts');
+      // The local configDir is the project .pi/, NOT .pi/agent/.
+      assert.ok(!fs.existsSync(path.join(localRoot, '.pi', 'agent')),
+        'local install does NOT create .pi/agent/ (that path is global-only)');
+
+      // ----- uninstall: bridge is removed from the global config home -----
+      const uninstallRes = spawnSync(process.execPath, [
+        INSTALL_SCRIPT, '--pi', '--uninstall', '--global', '--config-dir', configDir,
+      ], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        env: installerEnv({ HOME: root, USERPROFILE: root }),
+      });
+      assert.strictEqual(uninstallRes.status, 0,
+        `uninstaller exited ${uninstallRes.status}\nstdout: ${uninstallRes.stdout}\nstderr: ${uninstallRes.stderr}`);
+      assert.ok(!fs.existsSync(bridgeDest),
+        'bridge file removed from global config home by uninstall');
+    } finally {
+      cleanup(root);
+      cleanup(localRoot);
+    }
+  });
 });

@@ -6783,6 +6783,16 @@ function _copyStaged(stagedDir, destDir, kind, configDir) {
     return;
   }
 
+  if (kind.kind === 'pi-extension') {
+    // pi-extension kind stages the contents of extensions/pi/ (the bridge
+    // source) into a tmp dir. Copy everything flat into destDir (which is
+    // <configDir>/extensions/). The kind's prefix is 'gsd-', so uninstall
+    // (_removeGsdEntries) prunes only gsd-prefixed entries, leaving any
+    // user-authored extensions/ files alone.
+    fs.cpSync(stagedDir, destDir, { recursive: true });
+    return;
+  }
+
   // commands or agents
   const entries = fs.readdirSync(stagedDir, { withFileTypes: true });
   // For commands: apply prefix unless the destSubpath's last segment already
@@ -6832,6 +6842,16 @@ function _removeGsdEntries(destDir, kind) {
         if (!entry.name.endsWith('.yaml') && !entry.name.endsWith('.md')) continue;
         fs.rmSync(path.join(subagentsDir, entry.name), { force: true });
       }
+    }
+    return;
+  }
+  if (kind.kind === 'pi-extension') {
+    // Remove all top-level gsd-prefixed entries from <configDir>/extensions/.
+    // Bridges are flat files (e.g. gsd-pi-bridge.ts); no subdirs at this stage.
+    // Subdirs (if added later) would be removed recursively.
+    for (const entry of fs.readdirSync(destDir, { withFileTypes: true })) {
+      if (!entry.name.startsWith(kind.prefix)) continue;
+      fs.rmSync(path.join(destDir, entry.name), { recursive: true, force: true });
     }
     return;
   }
@@ -8777,6 +8797,23 @@ function writeManifest(configDir, runtime = 'claude', options = {}) {
     for (const file of fs.readdirSync(agentsDir)) {
       if (file.startsWith('gsd-') && (file.endsWith('.md') || file.endsWith('.toml'))) {
         manifest.files['agents/' + file] = fileHash(path.join(agentsDir, file));
+      }
+    }
+  }
+  // Track pi-extension artifacts (the native TS guard bridge file) in the
+  // manifest so saveLocalPatches() detects user edits and reinstall reflects
+  // them. The bridge file is the only artifact under extensions/ today; the
+  // manifest hashes all gsd-prefixed files at this depth for forward
+  // compatibility (subdirs with their own index.ts are not currently staged
+  // by the pi-extension kind, but the layout reserves the destSubpath
+  // 'extensions' for future expansion).
+  if (isPi) {
+    const extensionsDir = path.join(configDir, 'extensions');
+    if (fs.existsSync(extensionsDir)) {
+      for (const file of fs.readdirSync(extensionsDir, { withFileTypes: true })) {
+        if (!file.isFile()) continue;
+        if (!file.name.startsWith('gsd-')) continue;
+        manifest.files['extensions/' + file.name] = fileHash(path.join(extensionsDir, file.name));
       }
     }
   }
