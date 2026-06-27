@@ -7686,6 +7686,7 @@ function uninstall(isGlobal, runtime = 'claude') {
   if (runtime === 'qwen') runtimeLabel = 'Qwen Code';
   if (runtime === 'hermes') runtimeLabel = 'Hermes Agent';
   if (runtime === 'kimi') runtimeLabel = 'Kimi CLI';
+  if (runtime === 'pi') runtimeLabel = 'Pi';
   if (runtime === 'codebuddy') runtimeLabel = 'CodeBuddy';
 
   console.log(`  Uninstalling GSD from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
