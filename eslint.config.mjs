@@ -177,6 +177,12 @@ export default tseslint.config(
       'gsd-core/bin/lib/teams-status.cjs',
       // ADR-1372: tsc-generated runtime artifact — lint the src/markdown-sectionizer.cts source.
       'gsd-core/bin/lib/markdown-sectionizer.cjs',
+      // Extension source files (e.g. extensions/pi/gsd-pi-bridge.ts) are static
+      // artifacts consumed in-place by their target runtime (e.g. pi's jiti loader).
+      // They are not part of the gsd-core tsc build (tsconfig.build.json only
+      // compiles src/*.cts) and not eligible for parserOptions.project (lives
+      // outside src/).
+      'extensions/**',
     ],
   },
 
