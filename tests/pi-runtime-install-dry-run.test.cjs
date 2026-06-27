@@ -4,12 +4,16 @@
  * Pi runtime — real install dry-run (fake HOME subprocess).
  *
  * Proves `--pi --global` produces the on-disk layout the pi descriptor
- * promises: skills/ land at the pi config home converted to pi-native form,
- * agents/ land path-rewritten to the pi install root, the runtime-agnostic
- * gsd-core/ tree lands, and NO native hooks surface is written (pi has no hook
- * bus — installSurface is profile-marker-only). Invokes bin/install.js as a
- * real subprocess against an isolated HOME so the installer's main() runs end
- * to end (require()-ing it is a no-op under the GSD_TEST_MODE guard).
+ * promises: skills/ land at the pi config home converted to pi-native form
+ * (name hyphenated; body path-rewritten by the new `case 'pi'` in
+ * _applyRuntimeRewrites), the runtime-agnostic gsd-core/ tree lands, and
+ * NO native hooks surface is written (pi has no hook bus — installSurface
+ * is profile-marker-only). NO agents/ directory is written — pi does not
+ * scan ~/.pi/agent/agents/ from disk (verified against pi's
+ * dist/core/resource-loader.js:485 which scans agentDir/{skills,prompts,
+ * themes,extensions} only). Invokes bin/install.js as a real subprocess
+ * against an isolated HOME so the installer's main() runs end to end
+ * (require()-ing it is a no-op under the GSD_TEST_MODE guard).
  */
 
 const { describe, test } = require('node:test');
@@ -20,6 +24,7 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 
 const { INSTALL_SCRIPT, installerEnv } = require('./helpers/install-shared.cjs');
+const { extractFrontmatterAndBody } = require('../gsd-core/bin/lib/runtime-artifact-conversion.cjs');
 const { cleanup } = require('./helpers.cjs');
 
 const MANIFEST_NAME = 'gsd-file-manifest.json';
@@ -47,8 +52,10 @@ describe('pi runtime install dry-run — on-disk layout', () => {
       // Config home resolved to ~/.pi/agent (the real descriptor path).
       assert.ok(fs.existsSync(configDir), 'pi config home ~/.pi/agent is created');
 
-      // skills/ — converted to pi-native form (space-delimited lowercase
-      // allowed-tools), one gsd-<name>/SKILL.md dir per command.
+      // skills/ — converted to pi-native form, one gsd-<name>/SKILL.md dir
+      // per command. After C3, body bytes containing ~/.claude/gsd-core/...
+      // are rewritten to ~/.pi/agent/gsd-core/... via the new `case 'pi':`
+      // in _applyRuntimeRewrites.
       const skillsDir = path.join(configDir, 'skills');
       assert.ok(fs.existsSync(skillsDir), 'skills/ is written');
       const skillDirs = fs.readdirSync(skillsDir, { withFileTypes: true })
@@ -61,30 +68,26 @@ describe('pi runtime install dry-run — on-disk layout', () => {
       // form (gsd:add-tests) must be hyphenated to load cleanly as /skill:gsd-*.
       assert.match(skillText, /^name: gsd-[a-z0-9-]+$/m, 'skill name is hyphen-form, not colon-form');
       assert.doesNotMatch(skillText, /^name: gsd:/m, 'no colon-form skill name remains');
-      const atLine = skillText.split('\n').find((l) => /^allowed-tools:/.test(l));
-      assert.ok(atLine, 'an allowed-tools line is present');
-      assert.ok(!/^allowed-tools:\s*\n\s*-/.test(skillText) && !/^- (Read|Write|Edit|Bash|Glob|Grep)$/m.test(skillText),
-        'allowed-tools is NOT a YAML array');
-      // The six mappable tools are lowercased to their pi spellings.
-      assert.match(atLine, /\bread\b/);
-      assert.match(atLine, /\bbash\b/);
-      assert.match(atLine, /\bfind\b/, 'Glob maps to find');
-      assert.doesNotMatch(atLine, /\b(Read|Write|Edit|Bash|Glob|Grep)\b/,
-        'no mappable Claude tool name survives unconverted');
-      // Unmapped names pass through verbatim (the allowlist is permissive).
-      assert.match(atLine, /\bAgent\b/, 'Agent preserved verbatim');
-      assert.match(atLine, /\bAskUserQuestion\b/, 'AskUserQuestion preserved verbatim');
+      // Skill body path-rewrite (the C3 fix): ~/.claude/ → ~/.pi/agent/ in
+      // skill body text. Walk every skill to assert no Claude config paths leak.
+      const bodiesWithTildeClaude = [];
+      for (const sd of skillDirs) {
+        const sk = fs.readFileSync(path.join(skillsDir, sd.name, 'SKILL.md'), 'utf8');
+        const body = extractFrontmatterAndBody(sk).body;
+        if (body.includes('~/.claude/') || body.includes('$HOME/.claude/')) {
+          bodiesWithTildeClaude.push(sd.name);
+        }
+      }
+      assert.strictEqual(
+        bodiesWithTildeClaude.length,
+        0,
+        `every skill body's ~/.claude/ paths must be rewritten to pi install root (failures: ${bodiesWithTildeClaude.join(', ')})`,
+      );
 
-      // agents/ — present, path-rewritten to the pi install root (not ~/.claude).
-      const agentsDir = path.join(configDir, 'agents');
-      assert.ok(fs.existsSync(agentsDir), 'agents/ is written');
-      const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.startsWith('gsd-') && f.endsWith('.md'));
-      assert.ok(agentFiles.length > 0, 'at least one gsd-* agent is written');
-      const plannerText = fs.readFileSync(path.join(agentsDir, 'gsd-planner.md'), 'utf8');
-      assert.ok(plannerText.includes('$HOME/.pi/agent/gsd-core/'),
-        'agent @-references are rewritten to the pi install root');
-      assert.ok(!plannerText.includes('~/.claude/gsd-core/'),
-        'agent @-references do not leak the Claude config dir');
+      // No agents/ — pi does not scan ~/.pi/agent/agents/ from disk, so the
+      // descriptor has no agents kind and the install must not create the dir.
+      assert.ok(!fs.existsSync(path.join(configDir, 'agents')),
+        'no agents/ directory is written (pi does not load agents/ from disk)');
 
       // gsd-core/ — runtime-agnostic workflow assets land under the config home.
       assert.ok(fs.existsSync(path.join(configDir, 'gsd-core')),

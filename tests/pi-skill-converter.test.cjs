@@ -3,14 +3,14 @@
 /**
  * Pi skill converter tests.
  *
- * pi (@earendil-works/pi-coding-agent) loads Claude skill files natively, but
- * its `allowed-tools` is a permissive, space-delimited lowercase allowlist.
- * `convertClaudeCommandToPiSkill` rewrites the Claude YAML array form to that
- * line, mapping the six Claude tools that have a pi spelling
- * (Read→read, Write→write, Edit→edit, Bash→bash, Grep→grep, Glob→find) and
- * passing every other name (mcp__context7__*, Agent, AskUserQuestion, WebFetch,
- * WebSearch, …) through verbatim — a non-installed allowlist entry is inert, so
- * unknown names are preserved rather than dropped. The skill body is untouched.
+ * pi's skill loader (dist/core/skills.js loadSkillFromFile, lines 183-226)
+ * consumes only `name`, `description`, and `disable-model-invocation` from
+ * frontmatter. Every other frontmatter field is dropped. `convertClaudeCommand
+ * ToPiSkill` therefore performs exactly one Claude→pi transform: it
+ * hyphenates the `name:` value (Claude's colon namespace `gsd:add-tests` fails
+ * pi's validateName `[a-z0-9-]+` at skills.js:79 and produces a broken
+ * /skill:gsd:add-tests invocation; the hyphen form `gsd-add-tests` loads cleanly
+ * as /skill:gsd-add-tests). The skill body is passed through verbatim.
  *
  * The converter is exported from runtime-artifact-conversion.cjs (it is NOT
  * duplicated into bin/install.js like the opencode/kilo converters), so tests
@@ -55,60 +55,35 @@ function sampleCommand() {
     'Orchestrates gsd-framework-selector → gsd-ai-researcher.',
     '</objective>',
     '',
+    'Reference: @~/.claude/gsd-core/references/ai-design.md',
+    'Reference: $HOME/.claude/gsd-core/references/ai-design.md',
+    '',
     'Invoke /gsd:ai-integration-phase from slash form.',
     'Invoke /gsd-ai-integration-phase from hyphen slash form.',
   ].join('\n');
 }
 
-describe('convertClaudeCommandToPiSkill — allowed-tools rewrite', () => {
-  test('rewrites the YAML array into a single space-delimited lowercase line', () => {
+describe('convertClaudeCommandToPiSkill — pass-through behavior', () => {
+  test('passes unknown frontmatter fields through verbatim (pi consumes only name/description/disable-model-invocation)', () => {
     const result = convertClaudeCommandToPiSkill(sampleCommand(), 'gsd-ai-integration-phase');
-
-    // The YAML array is gone; exactly one space-delimited allowed-tools line.
-    const lines = result.split('\n');
-    const atLines = lines.filter((l) => /^allowed-tools:/.test(l));
-    assert.equal(atLines.length, 1, 'exactly one allowed-tools line is emitted');
-    assert.equal(atLines[0], 'allowed-tools: read write bash find grep Agent WebFetch WebSearch AskUserQuestion mcp__context7__*');
-    assert.ok(!result.includes('\n  - Read'), 'no YAML list items remain');
-    assert.ok(!/\n\s*-\s+\w/.test(result), 'no YAML array syntax remains anywhere');
+    // allowed-tools is dropped-by-pi territory — the converter emits it verbatim
+    // so the file is byte-faithful to the source and any future pi tooling that
+    // chooses to consume it has the original Claude form to work with.
+    assert.ok(result.includes('allowed-tools:'), 'allowed-tools line preserved');
+    assert.ok(/^\s*-\s+(Read|Write|Bash|Glob|Grep)/m.test(result), 'YAML array items preserved verbatim');
+    assert.ok(result.includes('argument-hint: "[phase number]"'), 'argument-hint preserved');
+    assert.ok(result.includes('requires: [phase]'), 'requires preserved');
+    assert.ok(result.includes('mcp__context7__*'), 'mcp tools preserved');
   });
 
-  test('maps the six Claude tools to their pi spellings (Glob→find, not glob)', () => {
-    const cmd = [
-      '---',
-      'name: gsd:x',
-      'allowed-tools:',
-      '  - Read',
-      '  - Write',
-      '  - Edit',
-      '  - Bash',
-      '  - Grep',
-      '  - Glob',
-      '---',
-      'body',
-    ].join('\n');
-    const result = convertClaudeCommandToPiSkill(cmd, 'gsd-x');
-    assert.equal(
-      result.split('\n').find((l) => /^allowed-tools:/.test(l)),
-      'allowed-tools: read write edit bash grep find',
-    );
-  });
-
-  test('preserves mcp__context7__* and unmapped tool names verbatim (allowlist is permissive)', () => {
+  test('does NOT transform allowed-tools (no case-insensitive rewriting, no lowercase collapse)', () => {
     const result = convertClaudeCommandToPiSkill(sampleCommand(), 'gsd-ai-integration-phase');
-    const line = result.split('\n').find((l) => /^allowed-tools:/.test(l));
-    // Unmapped names are passed through unchanged — never dropped, never lowercased.
-    assert.ok(line.includes('mcp__context7__*'), 'mcp__context7__* preserved verbatim');
-    assert.ok(line.includes('Agent'), 'Agent preserved verbatim (not lowercased)');
-    assert.ok(line.includes('AskUserQuestion'), 'AskUserQuestion preserved verbatim');
-    assert.ok(line.includes('WebFetch'), 'WebFetch preserved verbatim');
-    assert.ok(line.includes('WebSearch'), 'WebSearch preserved verbatim');
-    // And they keep their source ordering.
-    assert.ok(
-      line.indexOf('Agent') < line.indexOf('WebFetch') &&
-        line.indexOf('WebFetch') < line.indexOf('mcp__context7__*'),
-      'tool ordering is preserved',
-    );
+    // Specifically assert the converter does not perform the dead work of
+    // rewriting allowed-tools — this guards against future regressions if
+    // someone tries to "re-add the feature".
+    assert.ok(result.includes('  - Read'), 'Read preserved as-is (no lowercase collapse)');
+    assert.ok(result.includes('  - Glob'), 'Glob preserved as-is (no map to find)');
+    assert.ok(!result.includes('allowed-tools: read write'), 'no collapsed lowercase line');
   });
 });
 
@@ -153,12 +128,11 @@ describe('convertClaudeCommandToPiSkill — body & frontmatter preservation', ()
     assert.equal(result, noFrontmatter, 'no-frontmatter input is returned unchanged');
   });
 
-  test('handles a single allowed-tools line with no body changes (minimal frontmatter)', () => {
-    const cmd = ['---', 'name: gsd:y', 'allowed-tools:', '  - Read', '  - Bash', '---', 'body'].join('\n');
-    const result = convertClaudeCommandToPiSkill(cmd, 'gsd-y');
-    assert.ok(result.startsWith('---\n'), 'frontmatter opens with ---');
-    assert.equal(extractFrontmatterAndBody(result).body, extractFrontmatterAndBody(cmd).body, 'body round-trips identically');
-    assert.ok(result.includes('allowed-tools: read bash'), 'array collapsed to space-delimited line');
+  test('handles a minimal frontmatter with no allowed-tools block', () => {
+    const cmd = ['---', 'name: gsd:z', '---', 'body'].join('\n');
+    const result = convertClaudeCommandToPiSkill(cmd, 'gsd-z');
+    assert.ok(result.includes('name: gsd-z'), 'name hyphenated');
+    assert.ok(!result.includes('allowed-tools:'), 'no allowed-tools added');
   });
 });
 
@@ -174,6 +148,8 @@ describe('convertClaudeCommandToPiSkill — signature compatibility', () => {
       ['ai-integration-phase'],
       true,
     );
-    assert.ok(result.includes('allowed-tools: read write bash find grep Agent'));
+    // After C1, allowed-tools is preserved verbatim (not collapsed).
+    assert.ok(result.includes('  - Read'), 'allowed-tools array preserved under 5-arg call');
+    assert.ok(result.includes('name: gsd-ai-integration-phase'), 'name hyphenated under 5-arg call');
   });
 });

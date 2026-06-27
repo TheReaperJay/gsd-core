@@ -73,11 +73,13 @@ describe('pi runtime — capability registry', () => {
     assert.equal(rt.sandboxTier, 'none');
     assert.equal(rt.installSurface, 'profile-marker-only');
     assert.equal(rt.writesSharedSettings, false);
-    // skills kind names the pi converter; agents kind is raw copy
+    // skills kind names the pi converter; no agents kind (pi does not scan
+    // ~/.pi/agent/agents/ from disk — dist/core/resource-loader.js:485)
     const skills = rt.artifactLayout.global.find((k) => k.kind === 'skills');
     const agents = rt.artifactLayout.global.find((k) => k.kind === 'agents');
+    assert.ok(skills, 'skills kind present in global layout');
     assert.equal(skills.converter, 'convertClaudeCommandToPiSkill');
-    assert.equal(agents.converter, null);
+    assert.equal(agents, undefined, 'no agents kind (pi does not load agents/)');
   });
 });
 
@@ -110,14 +112,63 @@ describe('pi runtime — installer flag wiring', () => {
 });
 
 describe('pi runtime — artifact layout resolution', () => {
-  test('resolveRuntimeArtifactLayout(pi, global) yields skills + agents', () => {
+  test('resolveRuntimeArtifactLayout(pi, global) yields skills only (no agents)', () => {
     const l = resolveRuntimeArtifactLayout('pi', '/tmp/pi-stage', 'global');
     const kinds = l.kinds.map((k) => k.kind).sort();
-    assert.deepEqual(kinds, ['agents', 'skills']);
+    assert.deepEqual(kinds, ['skills'], 'global layout is skills-only');
   });
 
   test('resolveRuntimeArtifactLayout(pi, local) yields skills', () => {
     const l = resolveRuntimeArtifactLayout('pi', '/tmp/pi-stage', 'local');
     assert.ok(l.kinds.some((k) => k.kind === 'skills'));
+  });
+});
+
+describe('pi runtime — content rewrite case', () => {
+  const conversion = require('../gsd-core/bin/lib/runtime-artifact-conversion.cjs');
+  const { _applyRuntimeRewrites } = conversion;
+
+  test('case "pi" rewrites ~/.claude/ to ~/.pi/agent/ in skill bodies', () => {
+    const out = _applyRuntimeRewrites(
+      'Reference: @~/.claude/gsd-core/references/x.md',
+      'pi',
+      '~/.pi/agent/',
+      true,
+      undefined,
+    );
+    assert.equal(out, 'Reference: @~/.pi/agent/gsd-core/references/x.md');
+  });
+
+  test('case "pi" rewrites $HOME/.claude/ to ~/.pi/agent/ in skill bodies', () => {
+    const out = _applyRuntimeRewrites(
+      'See $HOME/.claude/gsd-core/workflows/foo.md for details.',
+      'pi',
+      '~/.pi/agent/',
+      true,
+      undefined,
+    );
+    assert.equal(out, 'See ~/.pi/agent/gsd-core/workflows/foo.md for details.');
+  });
+
+  test('case "pi" rewrites bare ~/.claude (no trailing slash) to ~/.pi/agent', () => {
+    const out = _applyRuntimeRewrites(
+      'Config home is at ~/.claude.',
+      'pi',
+      '~/.pi/agent/',
+      true,
+      undefined,
+    );
+    assert.equal(out, 'Config home is at ~/.pi/agent.');
+  });
+
+  test('case "pi" rewrites ././claude/ to ./.pi/ in local scope', () => {
+    const out = _applyRuntimeRewrites(
+      'Reference: @./.claude/gsd-core/workflows/x.md',
+      'pi',
+      './.pi/',
+      false,
+      undefined,
+    );
+    assert.equal(out, 'Reference: @./.pi/gsd-core/workflows/x.md');
   });
 });
