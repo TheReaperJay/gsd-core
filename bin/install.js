@@ -10018,8 +10018,9 @@ function install(isGlobal, runtime = 'claude', options = {}) {
     }
   }
 
-  if (isKimi) {
-    console.log(`  ${dim}↳${reset} Kimi custom agent YAML/prompt artifacts were installed via runtime artifact layout`);
+  if (isKimi || isPi) {
+    const which = isKimi ? 'Kimi' : 'Pi';
+    console.log(`  ${dim}↳${reset} ${which} skills installed via runtime artifact layout`);
   } else if (isMinimalMode(_effectiveInstallMode)) {
     // Codex registers agents in `config.toml` via `[agents.gsd-*]` sections.
     // Without stripping them here, a full → minimal reinstall would leave the
