@@ -32,10 +32,33 @@ import type {
   ToolCallEvent,
   ToolResultEvent,
 } from "@earendil-works/pi-coding-agent";
-import { isReadToolResult } from "@earendil-works/pi-coding-agent";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
+
+// ============================================================================
+// pi tool name vocabulary
+// ============================================================================
+//
+// The bridge dispatches handlers based on event.toolName. The set of tool names
+// below is verified against @earendil-works/pi-coding-agent@0.78.0
+// (dist/core/tools/index.d.ts:36 `ToolName = "read" | "bash" | "edit" |
+// "write" | "grep" | "find" | "ls"`). The bridge is consumed by pi's jiti
+// loader at pi-runtime, where the package IS installed; this file is
+// self-contained and does NOT import these names from the package at runtime,
+// keeping it loadable in gsd-core's test process without a devDep.
+//
+// If pi renames a tool in a future version (e.g. 0.81 introduces a new tool or
+// drops one), update the constants below. Tests under tests/pi-bridge.unit.test.cjs
+// assert the dispatcher behavior for each constant.
+
+const TOOL_READ = "read";
+const TOOL_WRITE = "write";
+const TOOL_EDIT = "edit";
+const TOOL_BASH = "bash";
+const TOOL_GREP = "grep";
+const TOOL_FIND = "find";
+const TOOL_LS = "ls";
 
 // ============================================================================
 // .planning/config.json reader
@@ -261,6 +284,29 @@ function checkWorktreePath(filePath: string, cwd: string): WorktreeCheckResult {
   const wtTopRaw = wtTopResult.stdout.trim();
 
   const resolved = path.resolve(filePath);
+
+  // Direct .git detection: if the absolute path is INSIDE the worktree's
+  // .git/ directory (the gitlink file or its conceptual contents), block.
+  // In a linked worktree, <wt>/.git is a file pointing back to the main
+  // repo's .git/worktrees/wt/, so rev-parse --is-inside-git-dir on the file
+  // path returns false. This path-string check catches that case directly
+  // before rev-parse's ambiguity can let it through.
+  const relToWt = path.relative(wtTopRaw, resolved);
+  if (
+    relToWt &&
+    !relToWt.startsWith("..") &&
+    !path.isAbsolute(relToWt) &&
+    (relToWt === ".git" ||
+      relToWt.startsWith(`.git${path.sep}`) ||
+      relToWt.startsWith(".git/"))
+  ) {
+    return {
+      kind: "block",
+      reason:
+        `Worktree path guard: '${filePath}' is inside the worktree's .git/ directory. ` +
+        `Writing to git internals from an isolated executor worktree is not permitted. Use a relative path.`,
+    };
+  }
   let checkDir: string;
   try {
     checkDir = fs.statSync(resolved).isDirectory()
@@ -384,7 +430,7 @@ function notifyContextUsage(ctx: ExtensionContext): void {
 export default function (pi: ExtensionAPI): void {
   // ---- tool_call: worktree path guard (write/edit) ----
   pi.on("tool_call", (event: ToolCallEvent, ctx: ExtensionContext) => {
-    if (event.toolName !== "write" && event.toolName !== "edit") return;
+    if (event.toolName !== TOOL_WRITE && event.toolName !== TOOL_EDIT) return;
     const input = event.input as { path?: string };
     if (!input || typeof input.path !== "string") return;
     const result = checkWorktreePath(input.path, ctx.cwd);
@@ -395,7 +441,7 @@ export default function (pi: ExtensionAPI): void {
 
   // ---- tool_call: validate-commit (bash, opt-in via hooks.community) ----
   pi.on("tool_call", (event: ToolCallEvent, ctx: ExtensionContext) => {
-    if (event.toolName !== "bash") return;
+    if (event.toolName !== TOOL_BASH) return;
     const input = event.input as { command?: string };
     if (!input || typeof input.command !== "string") return;
     if (!isGitSubcommand(input.command, "commit")) return;
@@ -414,7 +460,7 @@ export default function (pi: ExtensionAPI): void {
 
   // ---- tool_call: worktree advisory for bash (absolute paths outside worktree) ----
   pi.on("tool_call", (event: ToolCallEvent, ctx: ExtensionContext) => {
-    if (event.toolName !== "bash") return;
+    if (event.toolName !== TOOL_BASH) return;
     const input = event.input as { command?: string };
     if (!input || typeof input.command !== "string") return;
     const cfg = readPlanningConfig(ctx.cwd);
@@ -436,7 +482,7 @@ export default function (pi: ExtensionAPI): void {
 
   // ---- tool_result: read-injection scanner (read tool only — replace on HIGH+opt-in) ----
   pi.on("tool_result", (event: ToolResultEvent, ctx: ExtensionContext) => {
-    if (!isReadToolResult(event)) return;
+    if (event.toolName !== TOOL_READ) return;
     const cfg = readPlanningConfig(ctx.cwd);
     const text = (event.content ?? [])
       .filter((c) => c.type === "text")
@@ -462,10 +508,10 @@ export default function (pi: ExtensionAPI): void {
   // ---- tool_result: read-injection scanner lite (grep/find/ls/bash — advisory only) ----
   pi.on("tool_result", (event: ToolResultEvent, ctx: ExtensionContext) => {
     const isLite =
-      event.toolName === "grep" ||
-      event.toolName === "find" ||
-      event.toolName === "ls" ||
-      event.toolName === "bash";
+      event.toolName === TOOL_GREP ||
+      event.toolName === TOOL_FIND ||
+      event.toolName === TOOL_LS ||
+      event.toolName === TOOL_BASH;
     if (!isLite) return;
     const text = (event.content ?? [])
       .filter((c) => c.type === "text")
