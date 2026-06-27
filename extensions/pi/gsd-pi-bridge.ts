@@ -403,7 +403,10 @@ const lastWarnedAt = new Map<string, number>();
 function notifyContextUsage(ctx: ExtensionContext): void {
   const usage = ctx.getContextUsage();
   if (!usage || usage.percent == null) return;
-  const left = 1 - usage.percent;
+  // Pi's ContextUsage.percent is 0-100 (% of context window USED).
+  // Convert to fraction remaining. Clamp to [0, 1] so bad/oversized
+  // estimates can't produce negative or absurd "X% remaining" strings.
+  const left = Math.max(0, Math.min(1, (100 - usage.percent) / 100));
   const sessionId = ctx.sessionManager.getSessionId();
   const now = Date.now();
   const last = lastWarnedAt.get(sessionId) ?? 0;

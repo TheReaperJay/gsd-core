@@ -345,22 +345,22 @@ describe('context monitor', () => {
     return { stub, handler, ctx };
   }
 
-  test('percent 0.50 → no message', () => {
-    const { handler, ctx } = setup({ percent: 0.5 });
+  test('percent 50 → no message', () => {
+    const { handler, ctx } = setup({ percent: 50 });
     handler({}, ctx);
     assert.equal(ctx._notifySink?.length ?? 0, 0);
     // Use the stub's notifyCalls since that's what setup wires up.
     assert.equal(ctx.notifyCalls?.length ?? 0, 0);
   });
 
-  test('percent 0.70 (left=0.30 ≤0.35) → WARNING', () => {
-    const { stub, handler, ctx } = setup({ percent: 0.7 });
+  test('percent 70 (left=0.30 ≤0.35) → WARNING', () => {
+    const { stub, handler, ctx } = setup({ percent: 70 });
     handler({}, ctx);
     assert.ok(stub.notifyCalls.some((c) => /WARNING/.test(c.msg)));
   });
 
-  test('percent 0.80 (left=0.20 ≤0.25) → CRITICAL', () => {
-    const { stub, handler, ctx } = setup({ percent: 0.8 });
+  test('percent 80 (left=0.20 ≤0.25) → CRITICAL', () => {
+    const { stub, handler, ctx } = setup({ percent: 80 });
     handler({}, ctx);
     assert.ok(stub.notifyCalls.some((c) => /CRITICAL/.test(c.msg)));
   });
@@ -384,7 +384,7 @@ describe('context monitor', () => {
       cwd: os.tmpdir(),
       ui: { notify: (msg, type) => notifySink.push({ msg, type }) },
       sessionManager: { getSessionId: () => sessionId },
-      getContextUsage: () => ({ tokens: 7000, contextWindow: 10000, percent: 0.7 }),
+      getContextUsage: () => ({ tokens: 7000, contextWindow: 10000, percent: 70 }),
     };
     handler({}, ctx);
     handler({}, ctx);
