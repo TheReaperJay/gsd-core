@@ -6,7 +6,7 @@
 
 ## Command Syntax
 
-- **Claude Code / Copilot / OpenCode / Kilo:** `/gsd-command-name [args]` (hyphen form)
+- **Claude Code / Copilot / OpenCode / Kilo / pi:** `/gsd-command-name [args]` (hyphen form; pi discovers them as skills invokable via `/skill:gsd-*`)
 - **Gemini CLI:** `/gsd:command-name [args]` (colon form — Gemini namespaces commands under `gsd:`)
 - **Codex:** `$gsd-command-name [args]`
 

@@ -446,6 +446,44 @@ Skills land in `~/.trae/`. GSD installs skills, agents, and rule references.
 
 ---
 
+### pi
+
+[Pi](https://github.com/earendil-works/pi-coding-agent) (`@earendil-works/pi-coding-agent`) uses a skills-based surface with a native extension event model in place of a `hooks/` config directory.
+
+```bash
+npx @opengsd/gsd-core@latest --pi --global
+```
+
+Skills land in `~/.pi/agent/skills/gsd-*/SKILL.md` with hyphenated `name:` frontmatter (e.g. `gsd-add-tests`) to satisfy pi's `[a-z0-9-]+` skill-name validator, and are invokable as `/skill:gsd-*`. Any `~/.claude/` path references in skill bodies are rewritten to the pi config home.
+
+GSD also installs a native TypeScript extension at `~/.pi/agent/extensions/gsd-pi-bridge.ts` that pi loads via its jiti loader. The bridge registers handlers on pi's `tool_call` / `tool_result` / `session_start` events and ports the guards Claude Code gets via `hooks/gsd-*` over to pi's equivalent surface:
+
+| pi event | Guard | Claude Code equivalent | Purpose |
+|---|---|---|---|
+| `tool_call` (write/edit) | worktree-path guard | `gsd-worktree-path-guard.js` | Block edits/writes targeting paths outside the worktree root |
+| `tool_call` (bash, `hooks.community: true`) | commit-validation | `gsd-validate-commit.sh` | Block `git commit` with non-Conventional-Commits messages |
+| `tool_result` (read) | read-injection scanner | `gsd-read-injection-scanner.js` | Scan read/grep/find/ls/bash output for known prompt-injection patterns |
+| `tool_result` (all, debounced) | context-monitor | `gsd-context-monitor.js` | Inject context-headroom warnings back into the agent |
+| `session_start` (`hooks.community: true`) | session-state | `gsd-session-state.sh` | Inject `STATE.md` head at session start for orientation |
+
+`gsd-prompt-guard` and `gsd-read-guard` are **not** ported — pi has no equivalent pre-prompt / pre-read hook surface. The bridge is opt-in for the commit and session-state guards via the same `hooks.community: true` config flag the other runtimes use.
+
+No `settings.json` mutation, no shared hook bus, no `registerCommand` surface — skills are discovered natively by pi.
+
+**Override the install directory:**
+
+```bash
+PI_CODING_AGENT_DIR=~/.pi/agent-alt npx @opengsd/gsd-core@latest --pi --global
+```
+
+For a project-local install, the bridge lands at `.pi/extensions/gsd-pi-bridge.ts` and skills at `.pi/skills/`:
+
+```bash
+npx @opengsd/gsd-core@latest --pi --local
+```
+
+---
+
 ## Local vs global install
 
 All examples above use `--global`, which installs GSD once for your user account. To scope an install to a single project, replace `--global` with `--local`:

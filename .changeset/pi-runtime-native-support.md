@@ -1,0 +1,5 @@
+---
+type: Added
+pr: 0
+---
+**GSD Core now installs into pi (`@earendil-works/pi-coding-agent`) as a first-class runtime** — run `npx @opengsd/gsd-core --pi --global` to install GSD skills (invokable as `/skill:gsd-*`) into `~/.pi/agent/skills/` with hyphenated `name:` frontmatter, plus a native guard extension at `~/.pi/agent/extensions/gsd-pi-bridge.ts` that enforces worktree isolation, read-injection scanning, commit-message validation, context monitoring, and session-state orientation via pi's `tool_call` / `tool_result` / `session_start` events. pi has no `hooks/` config surface, so the guards run through pi's native extension event model instead; `gsd-prompt-guard` and `gsd-read-guard` are not ported (no equivalent pi surface). Uninstall labels pi artifacts as "Pi". No existing runtime's install output changes — additive descriptor, converter, and artifact kind only.
