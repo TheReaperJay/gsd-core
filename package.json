@@ -14,6 +14,7 @@
     "gsd-core",
     "assets",
     "agents",
+    "extensions",
     ".claude-plugin",
     "gemini-extension.json",
     "GEMINI.md",
