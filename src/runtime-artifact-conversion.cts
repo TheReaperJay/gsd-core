@@ -1484,13 +1484,14 @@ function convertClaudeCommandToCodexSkill(content, skillName) {
 /**
  * Convert a GSD Claude-source skill to pi-native form.
  *
- * pi (@earendil-works/pi-coding-agent) loads Claude skill files natively, but
- * its `allowed-tools` is a space-delimited lowercase allowlist. This converter:
- *   - rewrites `allowed-tools` from a YAML array of Capitalized Claude tool
- *     names to a space-delimited lowercase string (Read→read, Glob→find, …);
- *   - preserves `mcp__context7__*` and any unmapped tool verbatim — `allowed-tools`
- *     is a PERMISSIVE allowlist, so non-installed tools are inert (no error);
- *   - leaves the body byte-identical (pi consumes Claude skill bodies).
+ * pi's skill loader (dist/core/skills.js loadSkillFromFile, lines 183-226)
+ * consumes only `name`, `description`, and `disable-model-invocation` from
+ * frontmatter. Every other frontmatter field is dropped by pi. The one
+ * Claude→pi transform that matters is making `name:` valid: pi's validateName
+ * requires [a-z0-9-]+ (skills.js:79), so Claude's colon namespace
+ * (gsd:add-tests) must be hyphenated to gsd-add-tests or the skill loads as a
+ * broken /skill:gsd:add-tests. Skill body bytes are preserved verbatim — pi
+ * loads Claude skill bodies natively.
  *
  * Signature matches the `skillsKind` call site
  * `(content, skillName, runtime, cmdNames, isGlobal) => string`.
@@ -1500,36 +1501,15 @@ function convertClaudeCommandToPiSkill(content, _skillName, _runtime = null, _cm
   if (!frontmatter) return content; // no frontmatter → copy verbatim
 
   const lines = frontmatter.split('\n');
-  const out: string[] = [];
-  let inAllowedTools = false;
-  const collected: string[] = [];
-  const flushAllowedTools = () => {
-    if (collected.length) out.push(`allowed-tools: ${collected.map(convertPiToolName).join(' ')}`);
-    collected.length = 0;
-  };
-  for (const line of lines) {
-    if (/^allowed-tools:\s*$/.test(line)) { inAllowedTools = true; continue; }
-    const listMatch = inAllowedTools ? line.match(/^\s*-\s+(.+)$/) : null;
-    if (listMatch) { collected.push(listMatch[1].trim()); continue; }
-    if (inAllowedTools) { flushAllowedTools(); inAllowedTools = false; }
-    // pi's skill loader requires `name:` to match [a-z0-9-]+ (dist/core/skills.js
-    // validateName); Claude's colon namespace (gsd:add-tests) fails validation and
-    // the skill ends up invocable as the broken /skill:gsd:add-tests. Hyphenate
-    // the name value so it loads cleanly as /skill:gsd-add-tests.
-    out.push(line.replace(/^(name:\s*)(\S.*)$/, (_m, k, v) => k + v.replace(/:/g, '-')));
-  }
-  if (inAllowedTools) flushAllowedTools();
+  const out: string[] = lines.map((line) =>
+    // pi's skill loader requires `name:` to match [a-z0-9-]+; Claude's colon
+    // namespace (gsd:add-tests) fails validation and the skill ends up
+    // invocable as the broken /skill:gsd:add-tests. Hyphenate so it loads
+    // cleanly as /skill:gsd-add-tests.
+    line.replace(/^(name:\s*)(\S.*)$/, (_m, k, v) => k + v.replace(/:/g, '-')),
+  );
 
   return `---\n${out.join('\n')}\n---${body}`;
-}
-
-// Verified pi tool-name map. allowed-tools is permissive, so unmapped names are
-// preserved verbatim (inert if the tool is absent), never dropped.
-function convertPiToolName(claudeTool: string): string {
-  const map: Record<string, string> = {
-    Read: 'read', Write: 'write', Edit: 'edit', Bash: 'bash', Grep: 'grep', Glob: 'find',
-  };
-  return map[claudeTool] ?? claudeTool;
 }
 
 function neutralizeAgentReferences(content, instructionFile) {
