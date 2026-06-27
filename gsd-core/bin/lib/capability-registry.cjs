@@ -1654,7 +1654,7 @@ const capabilities = {
     "role": "runtime",
     "version": "1.6.0",
     "title": "Pi Coding Agent",
-    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills install natively as /skill:gsd-*. No agent artifacts (pi does not scan ~/.pi/agent/agents/ from disk). No hook bus, no shared settings. Tier-2 support.",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills install natively as /skill:gsd-*. Native TS guard extension at ~/.pi/agent/extensions/gsd-pi-bridge.ts (and <cwd>/.pi/extensions/gsd-pi-bridge.ts for local installs) enforces worktree isolation, prompt-injection scanning, commit-message validation, context monitoring, and session-state reminder via pi's tool_call/tool_result/session_start events. No hook bus, no shared settings, no registerCommand (skills discovered natively). Tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -4086,7 +4086,7 @@ const runtimes = {
     "role": "runtime",
     "version": "1.6.0",
     "title": "Pi Coding Agent",
-    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills install natively as /skill:gsd-*. No agent artifacts (pi does not scan ~/.pi/agent/agents/ from disk). No hook bus, no shared settings. Tier-2 support.",
+    "description": "Pi (@earendil-works/pi-coding-agent). Config home ~/.pi/agent (env PI_CODING_AGENT_DIR). Skills install natively as /skill:gsd-*. Native TS guard extension at ~/.pi/agent/extensions/gsd-pi-bridge.ts (and <cwd>/.pi/extensions/gsd-pi-bridge.ts for local installs) enforces worktree isolation, prompt-injection scanning, commit-message validation, context monitoring, and session-state reminder via pi's tool_call/tool_result/session_start events. No hook bus, no shared settings, no registerCommand (skills discovered natively). Tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
